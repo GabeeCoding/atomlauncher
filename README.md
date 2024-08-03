@@ -10,3 +10,6 @@ Features:
 - Favourite support
 - Pages sorted in alphabetical order
 - Customise number of apps per page (press the Atom Launcher title)
+
+## Developement instructions
+For developement instructions read [MOCK.md](MOCK.md)
