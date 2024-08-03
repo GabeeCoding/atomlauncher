@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Atom Launcher</title>
+		<style>
+			* {
+				outline:none;
+				appearance: none;
+				user-select: none;
+				user-drag: none;
+				cursor: default;
+				/*
+				touch-action: none;
+				*/
+				/*with -webkit prefixes as well*/
+				margin: 0;
+				padding: 0;
+
+				font-family: monospace;
+			}
+
+			body {
+				overflow: hidden;
+
+				/* background-color: black; */
+				color: white;
+				font-family: 'Courier New', Courier, monospace;
+			}
+
+			#iconSlider {
+				position: absolute;
+				display: flex;
+				top: 50%;
+				transform: translateY(-50%);
+				width: 100%;
+				height: 80%;
+				align-items: center;
+
+				overflow-x: scroll;
+			}
+
+			#iconSlider .icon {
+				min-width: 300px;
+				min-height: 300px;
+				max-width: 300px;
+				max-height: 300px;
+
+				margin: 25px;
+
+				background-color: white;
+				border-radius: 5px;
+
+				display: flex;
+				justify-content: center;
+				align-items: center
+			}
+			/*
+			#buttons {
+				position: absolute;
+				display: flex;
+				transform: translateX(-50%);
+				left: 50%;
+				bottom: 15px;
+				width: 520px;
+				height: 26px;
+				flex-grow: 1;
+				gap: 6px
+			}
+			*/
+
+			#buttons {
+				position: absolute;
+				bottom: 1rem;
+				display: flex;
+				justify-content: space-evenly;
+				align-items: center;
+				width: 100%;
+			}
+
+			
+			#favPageButton {
+				border-radius: 16px;
+				padding: 4px;
+				background-image: url("ballNormal.png");
+				background-repeat: no-repeat;
+				width: 32px;
+				height: 16px;
+				filter: drop-shadow(0 0 3px black);
+				transition: background-color 200ms;
+			}
+
+			.pageButton {
+				color: white;
+				font-size: 18px;
+			}
+
+			.appDialog {
+				position: fixed;
+				width: 80%;
+				height: 80%;
+				border: 2px solid white;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				z-index: 200;
+				background-color: black;
+				display: flex;
+				flex-direction: row;
+				color: white;
+			}
+
+			.appDialog > .appInfo {
+				display: flex;
+				width: 40%;
+				align-items: center;
+				justify-content: center;
+				flex-direction: column;
+				padding: 5px;
+				text-align: center;
+			}
+
+			.appDialog > .appInfo > img {
+				border: 2px solid cyan;
+				/* flex: 1 1 auto; */
+				object-fit: cover;
+				max-width: 100%;
+				height: auto;
+				width: fit-content;
+				max-height: 100%;
+				aspect-ratio: 1 / 1;
+			}
+
+			.appDialog > .appInfo p {
+				overflow-wrap: anywhere;
+				margin: 5px;
+			}
+
+			.appDialog > .appMenu {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+			}
+
+			.appDialog > .appMenu button {
+				padding: 8px 2px;
+				border: none;
+				border-radius: 5px;
+				font-size: 18px;
+				margin: 5px 0;
+			}
+
+			h1 {
+				background-color: black;
+				width: fit-content;
+			}
+		</style>
+	</head>
+	<body>
+		<br>
+		<h1 onclick="pageLengthPrompt();update()"><u>Atom Launcher</u></h1>
+
+		<div id="iconSlider">
+			<a href="javascript:void" class="icon"><img src="mock/icons/default/de.eric_scheibler.tactileclock.png"></a>
+			<a href="javascript:void" class="icon"><img src="mock/icons/default/de.eric_scheibler.tactileclock.png"></a>
+			<a href="javascript:void" class="icon"><img src="mock/icons/default/de.eric_scheibler.tactileclock.png"></a>
+			<a href="javascript:void" class="icon"><img src="mock/icons/default/de.eric_scheibler.tactileclock.png"></a>
+			<a href="javascript:void" class="icon"><img src="mock/icons/default/de.eric_scheibler.tactileclock.png"></a>
+			<a href="javascript:void" class="icon"><img src="mock/icons/default/de.eric_scheibler.tactileclock.png"></a>
+			<a href="javascript:void" class="icon"><img src="mock/icons/default/de.eric_scheibler.tactileclock.png"></a>
+			<a href="javascript:void" class="icon"><img src="mock/icons/default/de.eric_scheibler.tactileclock.png"></a>
+			<a href="javascript:void" class="icon"><img src="mock/icons/default/de.eric_scheibler.tactileclock.png"></a>
+			<a href="javascript:void" class="icon"><img src="mock/icons/default/de.eric_scheibler.tactileclock.png"></a>
+		</div>
+
+		<div id="buttons"></div>
+
+		<script>
+			if(!window.Bridge){
+				//mock mode
+				document.body.style.backgroundColor = "black"
+			}
+		</script>
+		<script src="mock.js"></script>
+		<script>
+			(async () => {
+				const favapi = {
+					toggle: pkgname => {
+						//returns "removed" if removed from favourites
+						//and "added"
+						let list = favapi.get()
+						if(list.find(fav => fav === pkgname)){
+							//in favs
+							//remove it
+							list.splice(list.indexOf(pkgname), 1);
+							favapi.set(list)
+							return "removed"
+						} else {
+							list.push(pkgname)
+							favapi.set(list)
+							return "added"
+						}
+					},
+					get: () => {
+						let list = localStorage.getItem("favs")
+						if(list === null){
+							list = []
+							localStorage.setItem("favs", "[]")
+						}
+						return JSON.parse(list)
+					},
+					set: updated => {
+						localStorage.setItem("favs", JSON.stringify(updated))
+					}
+				}
+				const iconSlider = document.querySelector("#iconSlider")
+				const buttons = document.querySelector("#buttons")
+
+				let selectedPage = 0
+
+				let appsPerPage = parseInt(localStorage.getItem("appsPerPage"))
+
+				if(isNaN(appsPerPage)){
+					pageLengthPrompt()
+				}
+
+				window.pageLengthPrompt = () => {
+					let resp = NaN
+					while(isNaN(resp) || resp < 1){
+						resp = parseInt(prompt("Enter apps per page (20 recommended)"))
+					}
+					localStorage.setItem("appsPerPage", resp)
+					window.location.reload()
+				}
+
+				let pages = []
+				{
+					let resp = await fetch(Bridge.getAppsURL())
+					let json = await resp.json()
+
+					var apps = json.apps
+					apps.sort((a,b) => {
+						if(a.label < b.label) return -1
+						if(a.label > b.label) return 1
+						return 0
+					})
+				}
+
+				let numPages = Math.ceil(apps.length/appsPerPage)
+
+				//buttons.innerHTML = ""
+
+				for(let i = 0; i < numPages; i++){
+					let list = apps.slice(appsPerPage * i, appsPerPage * i + appsPerPage)
+					pages.push(list)
+					//add buttons
+
+					let firstChar = list[0].label.charAt(0).toUpperCase()
+					let lastChar = list[list.length - 1].label.charAt(0).toUpperCase()
+
+					let button = document.createElement("a")
+					button.innerText = firstChar !== lastChar ? `${firstChar}-${lastChar}` : firstChar
+					//button.style.width = "fit-content"
+					//button.style.height = "fit-content"
+					button.className = "pageButton"
+					button.id = i
+					
+					if(selectedPage === i){
+						button.style.color = "cyan"
+					} else {
+						button.style.color = ""
+					}
+
+					button.href = `javascript:updateSelectedPage(${i})`
+					
+					buttons.appendChild(button)
+
+				}
+				let favPageButton = document.createElement("a")
+				favPageButton.id = "favPageButton"
+				favPageButton.innerText = ""
+				favPageButton.className = "pageButton"
+				favPageButton.style.background = `url("ballYellow.png") no-repeat`
+
+				favPageButton.onclick = () => {
+					let page = []
+					let list = favapi.get()
+					list.forEach(pkgname => {
+						let found = apps.find(app => app.packageName === pkgname)
+						if(!found){
+							alert(`removing ${pkgname} from favs, not found in apps!`)
+							favapi.toggle(pkgname)
+						}
+						page.push(found)
+					})
+					pages[numPages] = page
+					selectedPage = numPages
+					if(page.length === 0){
+						//no favs
+						//alert the user
+						iconSlider.innerHTML = `<h1>No favourites yet, go add some</h1>`
+					} else {
+						update()
+					}
+					for(const button of buttons.children){
+						if(button.id !== "favPageButton"){
+							button.style = ""
+						}
+					}
+				}
+
+				buttons.appendChild(favPageButton)
+
+				window.updateSelectedPage = (newPage) => {
+					console.log("updating selected page to", newPage)
+					selectedPage = newPage
+					
+					for(button of buttons.children){
+						if(button.id === newPage.toString()){
+							//button.style.background = `url("ballActive.png") no-repeat`
+							button.style.color = "cyan"
+						} else if(button.id !== "favPageButton") {
+							button.style = ""
+						}
+					}
+					update()
+					//change scroll to 0
+					iconSlider.scrollLeft = 0
+				}
+
+				function addSpacer(){
+					const spacer = document.createElement("div")
+					spacer.style.minWidth = "368px"
+					spacer.style.height = "100%"
+
+					iconSlider.appendChild(spacer)
+				}
+
+				window.update = () => {
+					console.log("upadting activities")
+
+					iconSlider.innerHTML = ""
+
+					//addSpacer()
+
+					pages[selectedPage].forEach(app => {
+						const packageName = app.packageName
+						const label = app.label
+						//create icons
+						let icon = document.createElement("a")
+						icon.className = "icon"
+						icon.href = `javascript:launchDialog('${packageName}', '${label}')`
+						let img = document.createElement("img")
+						img.src = Bridge.getDefaultAppIconURL(packageName)
+						img.width = 192
+						img.height = 192
+
+						img.style.position = "absolute"
+						//img.style.zIndex = "-2"
+
+						icon.appendChild(img)
+
+						let caption = document.createElement("p")
+						caption.innerText = label
+						caption.style.zIndex = 100
+						caption.style.position = "absolute"
+						caption.style.bottom = "5.5%"
+						caption.style.color = "black"
+						caption.style.textDecoration = "none"
+						caption.style.fontSize = "20px"
+						caption.style.fontFamily = "monospace"
+						caption.style.textAlign = "center"
+
+						icon.appendChild(caption)
+						
+						iconSlider.appendChild(icon)
+					})
+					console.log("DONE UPDATING")
+					/*
+					setTimeout(() => {
+						document.querySelectorAll(".icon").forEach(icon => {
+							icon.style.transition = "margin-top 200ms"
+							icon.style.marginTop = ""
+						})
+					}, 200)
+					*/
+
+					//addSpacer()
+				}
+				update()
+
+				window.launchDialog = (package, label) => {
+					if(document.querySelector(".appDialog") !== null) return;
+					//show popup
+					const dialog = document.createElement("div")
+					dialog.className = "appDialog"
+						const appInfo = document.createElement("div")
+						appInfo.className = "appInfo"
+						dialog.appendChild(appInfo)
+						
+							const img = document.createElement("img")
+							img.src = Bridge.getDefaultAppIconURL(package)
+							img.onclick = () => {
+								Bridge.requestLaunchApp(package)
+							}
+							appInfo.appendChild(img)
+							
+							const appname = document.createElement("p")
+							appname.innerText = label
+							appInfo.appendChild(appname)
+
+							const pkgname = document.createElement("p")
+							pkgname.innerText = package
+							appInfo.appendChild(pkgname)
+
+						const appMenu = document.createElement("div")
+						appMenu.className = "appMenu"
+						dialog.appendChild(appMenu)
+							
+					document.body.appendChild(dialog)
+					
+					const favButton = document.createElement("button")
+					favButton.innerText = "Toggle favourite"
+					favButton.style.marginTop = "10px"
+					favButton.onclick = () => {
+						if(favapi.toggle(package) === "added"){
+							alert(`${label} added to favourites`)
+						} else {
+							alert(`${label} removed from favourites`)
+						}
+					}
+					appMenu.appendChild(favButton)
+
+					const uninstallButton = document.createElement("button")
+					uninstallButton.innerText = "Uninstall app"
+					uninstallButton.onclick = () => {
+						if(Bridge.requestAppUninstall(package)){
+							//success
+							//dialog.remove()
+							window.location.reload()
+						} else {
+							//error
+							alert(`Failed to uninstall ${label}`)
+						}
+					}
+					appMenu.appendChild(uninstallButton)
+
+					const help = document.createElement("p")
+					help.style.fontSize = "18px"
+					help.innerText = "Press the app icon to launch"
+					appMenu.appendChild(help)
+				}
+
+				document.body.onclick = e => {
+					const target = e.target
+					const appDialog = document.querySelector(".appDialog")
+					if(appDialog !== null){
+						//app dialog open
+						if(!(appDialog.contains(target) || target === appDialog)){
+							//clicked off of the app dialog
+							appDialog.remove()
+							e.preventDefault()
+						}
+					}
+				}
+				
+				let xdeg = 0
+				let zdeg = 0
+
+				let xinc = 0
+				let zinc = 0
+
+				function calc3d(){
+					//xinc += 0.01
+					zinc += 0.007
+
+					document.querySelectorAll(".icon").forEach(icon => {
+						let rect = icon.getBoundingClientRect()
+						let xofthis = rect.x + 150
+
+						if(xofthis < window.innerWidth + 76){
+							if(xofthis >-192){
+								//skip rendering 3d if outside screen
+								let yofthis = rect.y
+								let howCloseToRight = xofthis/window.innerWidth
+
+								//TODO: move const up
+								const maxdeg = 32
+								const maxscale = 0.2
+
+								//xdeg = Math.sin(xinc)*11
+								zdeg = Math.sin(zinc)/2
+
+								let scale = Math.abs(((howCloseToRight * maxscale * 2)-maxscale)) + 1
+
+								if(scale > 2){
+									scale = 1
+								}
+
+								let deg = (howCloseToRight * (maxdeg * -2)) + maxdeg
+								//icon.style.transform = "perspective(512px) rotateY("+deg*1.2+"deg) rotateX("+xdeg+"deg) rotateZ("+zdeg+"deg) scale("+scale+")"
+								//icon.style.transform = `perspective(512px) rotateY(${deg * 1.2}deg) rotateX(${xdeg}deg) rotateZ(${zdeg}deg) scale(${scale})`
+								icon.style.transform = `perspective(512px) rotateY(${deg * 1.2}deg) rotateZ(${zdeg}deg) scale(${scale})`
+							}
+						}
+					})
+				};calc3d()
+
+				setInterval(calc3d, 1000/60)
+			})()
+		</script>
+	</body>
+</html>
