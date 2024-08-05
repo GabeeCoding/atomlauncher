@@ -242,8 +242,10 @@
 
 					var apps = json.apps
 					apps.sort((a,b) => {
-						if(a.label < b.label) return -1
-						if(a.label > b.label) return 1
+						let alabel = a.label.toUpperCase()
+						let blabel = b.label.toUpperCase()
+						if(alabel < blabel) return -1
+						if(alabel > blabel) return 1
 						return 0
 					})
 				}
