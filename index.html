@@ -435,6 +435,15 @@
 					}
 					appMenu.appendChild(favButton)
 
+					const appInfoButton = document.createElement("button")
+					appInfoButton.innerText = "View app info"
+					appInfoButton.onclick = () => {
+						//requestOpenAppInfo(packageName: string, showToastIfFailed?: boolean): boolean;
+
+						Bridge.requestOpenAppInfo(package, true)
+					}
+					appMenu.appendChild(appInfoButton)
+
 					const uninstallButton = document.createElement("button")
 					uninstallButton.innerText = "Uninstall app"
 					uninstallButton.onclick = () => {
@@ -448,6 +457,7 @@
 						}
 					}
 					appMenu.appendChild(uninstallButton)
+
 
 					const help = document.createElement("p")
 					help.style.fontSize = "18px"
